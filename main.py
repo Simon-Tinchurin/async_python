@@ -1,11 +1,8 @@
 import socket
 import logging
-import selectors
-
+from select import select
 
 # to see which ports are in use: netstat -tuln
-
-selector = selectors.DefaultSelector()
 
 FORMAT = '%(asctime)s - %(levelname)s - %(name)s - %(message)s'
 DATE_FORMAT = '%d.%m.%Y %I:%M:%S %p'
@@ -14,6 +11,11 @@ logging.basicConfig(filename='async_logs.log',
                     datefmt=DATE_FORMAT,
                     level=logging.INFO)
 
+tasks = []
+
+to_read = {}
+to_write = {}
+
 
 def server():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -21,44 +23,45 @@ def server():
     server_socket.bind(('localhost', 5000))
     server_socket.listen()
 
-    selector.register(fileobj=server_socket,
-                      events=selectors.EVENT_READ,
-                      data=accept_connection)
+    while True:
+        yield ('read', server_socket)
+        client_socket, addr = server_socket.accept()
+        logging.info(f'Connection from {addr}')
+        tasks.append(client(client_socket))
 
 
-def accept_connection(server_socket):
-    logging.info('Inside accept_connection func')
-    client_socket, addr = server_socket.accept()
-    logging.info(f'Connection from: {addr}')
-
-    selector.register(fileobj=client_socket,
-                      events=selectors.EVENT_READ,
-                      data=send_message)
-
-
-def send_message(client_socket):
-    logging.info('inside send_message func')
-    request = client_socket.recv(4096)
-
-    if request:
-        response = 'Something received\n'.encode()
-        logging.info(f'received {request.decode()}')
-        client_socket.send(response)
-    else:
-        logging.info(f'closing socket {client_socket}')
-        selector.unregister(client_socket)
-        client_socket.close()
+def client(client_socket):
+    while True:
+        yield ('read', client_socket)
+        request = client_socket.recv(4096)
+        if not request:
+            break
+        else:
+            response = 'Something received\n'.encode()
+            yield ('write', client_socket)
+            logging.info(f'Received {request} from {client_socket}')
+            client_socket.send(response)
+    client_socket.close()
 
 
 def event_loop():
-    while True:
-        # (key, events)
-        events = selector.select()
-        for key, _ in events:
-            callback = key.data
-            callback(key.fileobj)
+    while any([tasks, to_read, to_write]):
+        while not tasks:
+            ready_to_read, ready_to_write, _ = select(to_read, to_write, [])
+            for sock in ready_to_read:
+                tasks.append(to_read.pop(sock))
+            for sock in ready_to_write:
+                tasks.append(to_write.pop(sock))
+        try:
+            task = tasks.pop(0)
+            sign, sock = next(task)
+            if sign == 'read':
+                to_read[sock] = task
+            if sign == 'write':
+                to_write[sock] = task
+        except StopIteration:
+            logging.info('all done')
 
 
-if __name__ == '__main__':
-    server()
-    event_loop()
+tasks.append(server())
+event_loop()
