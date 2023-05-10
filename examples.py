@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import colorama
 import random
@@ -5,40 +6,42 @@ import time
 
 
 def main():
+    loop = asyncio.get_event_loop()
+
     t0 = datetime.datetime.now()
     print(colorama.Fore.YELLOW + 'App started.', flush=True)
-    data = []
+    data = asyncio.Queue()
 
-    generate_data(20, data)
-    process_data(20, data)
+    task1 = loop.create_task(generate_data(20, data))
+    task2 = loop.create_task(generate_data(20, data))
+    task3 = loop.create_task(process_data(40, data))
+
+    final_task = asyncio.gather(task1, task2, task3)
+    loop.run_until_complete(final_task)
 
     dt = datetime.datetime.now() - t0
     print(colorama.Fore.WHITE + f'App exiting, total time: {dt.total_seconds()}')
 
 
-def generate_data(num: int, data: list):
+async def generate_data(num: int, data: asyncio.Queue):
     for idx in range(1, num + 1):
         item = idx * idx
-        data.append((item, datetime.datetime.now()))
+        await data.put((item, datetime.datetime.now()))
 
         print(colorama.Fore.YELLOW + f'-- generated {idx} item {item}', flush=True)
-        time.sleep(random.random() + 0.5)
+        await asyncio.sleep(random.random() + 0.5)
 
 
-def process_data(num: int, data: list):
+async def process_data(num: int, data: asyncio.Queue):
     processed = 0
     while processed < num:
-        item = data.pop(0)
-        if not item:
-            time.sleep(0.01)
-            continue
+        item = await data.get()
         processed += 1
         value = item[0]
         t = item[1]
         dt = datetime.datetime.now() - t
-
         print(colorama.Fore.CYAN + f'+++ Processed value {value} after {dt.total_seconds()} sec.')
-        time.sleep(0.5)
+        await asyncio.sleep(0.5)
 
 
 if __name__ == '__main__':
