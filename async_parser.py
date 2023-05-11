@@ -1,15 +1,18 @@
-import requests
+import asyncio
+import aiohttp
 import bs4
 from colorama import Fore
 
 
-def get_html(episode_number: int) -> str:
+async def get_html(episode_number: int) -> str:
     print(Fore.YELLOW + f'Getting HTML for episode {episode_number}', flush=True)
 
     url = f'https://talkpython.fm/{episode_number}'
-    response = requests.get(url)
-    response.raise_for_status()
-    return response.text
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            response.raise_for_status()
+            return await response.text()
 
 
 def get_title(html: str, episode_number: int) -> str:
@@ -22,15 +25,20 @@ def get_title(html: str, episode_number: int) -> str:
 
 
 def main():
-    get_title_range()
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(get_title_range())
     print("Done.")
 
 
-def get_title_range():
+async def get_title_range():
+    tasks = []
     for n in range(10, 20):
-        html = get_html(n)
+        tasks.append((n, asyncio.create_task(get_html(n))))
+
+    for n, t in tasks:
+        html = await t
         title = get_title(html, n)
-        print(Fore.WHITE+ f'Title found: {title}', flush=True)
+        print(Fore.WHITE + f'Title found: {title}', flush=True)
 
 
 if __name__ == '__main__':
