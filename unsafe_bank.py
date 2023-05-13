@@ -1,7 +1,7 @@
 import datetime
 import random
 import time
-from threading import Thread
+from threading import Thread, RLock
 from typing import List
 
 
@@ -36,7 +36,7 @@ def main():
 
 
 def do_bank_stuff(accounts, total):
-    for _ in range(1, 10000):
+    for _ in range(1, 1000):
         a1, a2 = get_two_accounts(accounts)
         amount = random.randint(1, 100)
         do_transfer(a1, a2, amount)
@@ -57,6 +57,7 @@ def create_accounts() -> List[Account]:
 def do_transfer(from_account: Account, to_account: Account, amount: int):
     if from_account.balance < amount:
         return
+
     from_account.balance -= amount
     time.sleep(.000)
     to_account.balance += amount
@@ -72,7 +73,9 @@ def validate_bank(accounts: List[Account], total: int, quiet=False):
 
 def get_two_accounts(accounts):
     a1 = random.choice(accounts)
-    a2 = random.choice(accounts)
+    a2 = a1
+    while a2 == a1:
+        a2 = random.choice(accounts)
     return a1, a2
 
 
