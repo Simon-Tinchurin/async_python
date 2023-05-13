@@ -1,7 +1,7 @@
 import datetime
 import random
 import time
-from threading import Thread, RLock
+from threading import Thread
 from typing import List
 
 
@@ -15,7 +15,7 @@ def main():
     total = sum(a.balance for a in accounts)
 
     validate_bank(accounts, total)
-    print('Starting transfer...')
+    print('Starting transfers...')
 
     jobs = [
         Thread(target=do_bank_stuff, args=(accounts, total)),
@@ -28,7 +28,7 @@ def main():
     t0 = datetime.datetime.now()
 
     [j.start() for j in jobs]
-    [j.join(0.01) for j in jobs]
+    [j.join() for j in jobs]
 
     dt = datetime.datetime.now() - t0
 
@@ -36,7 +36,7 @@ def main():
 
 
 def do_bank_stuff(accounts, total):
-    for _ in range(1, 1000):
+    for _ in range(1, 10000):
         a1, a2 = get_two_accounts(accounts)
         amount = random.randint(1, 100)
         do_transfer(a1, a2, amount)
