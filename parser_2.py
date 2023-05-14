@@ -1,13 +1,15 @@
 import requests
 import bs4
 from concurrent.futures import Future
-from concurrent.futures.thread import ThreadPoolExecutor as PoolExecutor
+# from concurrent.futures.thread import ThreadPoolExecutor as PoolExecutor
+from concurrent.futures.process import ProcessPoolExecutor as PoolExecutor
 import datetime
 import multiprocessing
 
 
 # Synchronous 3.084317
 # with Future 0.709784
+# with different processes 0.665417
 
 
 def main():
