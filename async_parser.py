@@ -3,6 +3,8 @@ import aiohttp
 import bs4
 from colorama import Fore
 
+# TODO 10.79
+
 
 async def get_html(episode_number: int) -> str:
     print(Fore.YELLOW + f'Getting HTML for episode {episode_number}', flush=True)

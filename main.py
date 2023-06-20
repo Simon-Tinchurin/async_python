@@ -6,10 +6,10 @@ from select import select
 
 FORMAT = '%(asctime)s - %(levelname)s - %(name)s - %(message)s'
 DATE_FORMAT = '%d.%m.%Y %I:%M:%S %p'
-logging.basicConfig(filename='async_logs.log',
-                    format=FORMAT,
-                    datefmt=DATE_FORMAT,
-                    level=logging.INFO)
+logging.basicConfig(
+    format=FORMAT,
+    datefmt=DATE_FORMAT,
+    level=logging.INFO)
 
 tasks = []
 
